@@ -2,6 +2,11 @@ CLUSTER       := secure-lab
 ARGOCD_VER    := v3.4.4
 ARGOCD_NS     := argocd
 CILIUM_VER    := 1.19.5
+# Upstream DNS for CoreDNS = whatever Docker containers get (192.168.5.1 on
+# Colima). Without it k3s falls back to 8.8.8.8, because the node's resolv.conf
+# is Docker's 127.0.0.11 — which breaks on networks that block public DNS.
+# Lives outside the repo; k3d bind-mounts it into every node.
+K3S_RESOLV    := $(HOME)/.config/secure-k8s-lab/k3s-resolv.conf
 
 .PHONY: help up down cilium argocd argocd-pass argocd-ui juice-ui root-app verify-netpol cilium-status hubble-ui falco-events
 
@@ -10,7 +15,10 @@ help: ## Show this help
 		awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
 
 up: ## Create cluster, bootstrap Cilium, install ArgoCD, deploy the lab
-	k3d cluster create --config cluster/k3d-config.yaml
+	@mkdir -p $(dir $(K3S_RESOLV))
+	docker run --rm busybox:1.38.0 cat /etc/resolv.conf | grep '^nameserver' > $(K3S_RESOLV)
+	k3d cluster create --config cluster/k3d-config.yaml \
+		--volume "$(K3S_RESOLV):/etc/k3s-resolv.conf@server:*;agent:*"
 	$(MAKE) cilium
 	$(MAKE) argocd
 	@echo "==> Waiting for ArgoCD to be ready..."

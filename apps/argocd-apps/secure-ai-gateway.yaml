@@ -1,0 +1,28 @@
+# Pulls the secure-ai-gateway repo into the secure-k8s-lab cluster via ArgoCD.
+# That repo holds its own ArgoCD Applications (gitops/), so this is a
+# cross-repo app-of-apps — same pattern as runtime-security.yaml.
+# Copy to secure-k8s-lab/apps/argocd-apps/ (or run `make wire-lab`).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: secure-ai-gateway
+  namespace: argocd
+  annotations:
+    # After Kyverno (-2) and its policies (-1), so the AI workloads are
+    # admitted against the guardrails.
+    argocd.argoproj.io/sync-wave: "2"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/teodorio95-portofolio/secure-ai-gateway.git
+    targetRevision: HEAD
+    path: gitops
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
