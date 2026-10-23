@@ -25,6 +25,12 @@ options:
     # be the CNI (installed at bootstrap by `make up`). Nodes stay NotReady
     # until Cilium is up — expected.
     extraArgs:
+      # CoreDNS forwards to the resolver in this file (written by `make up`,
+      # mounted with --volume) instead of k3s's 8.8.8.8 fallback.
+      - arg: --resolv-conf=/etc/k3s-resolv.conf
+        nodeFilters:
+          - server:*
+          - agent:*
       - arg: --flannel-backend=none
         nodeFilters:
           - server:*
