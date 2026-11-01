@@ -7,8 +7,14 @@ CILIUM_VER    := 1.19.5
 # is Docker's 127.0.0.11 — which breaks on networks that block public DNS.
 # Lives outside the repo; k3d bind-mounts it into every node.
 K3S_RESOLV    := $(HOME)/.config/secure-k8s-lab/k3s-resolv.conf
+# Homelab mini PC (bare-metal k3s, see homelab/README.md), reached over
+# Tailscale. Its kubeconfig lives outside the repo, next to the default one.
+HOMELAB_HOST       ?= homelab
+HOMELAB_USER       ?= teodorio
+HOMELAB_KUBECONFIG ?= $(HOME)/.kube/homelab.yaml
 
-.PHONY: help up down cilium argocd argocd-pass argocd-ui juice-ui root-app verify-netpol cilium-status hubble-ui falco-events
+.PHONY: help up down cilium argocd argocd-pass argocd-ui juice-ui root-app verify-netpol cilium-status hubble-ui falco-events \
+	homelab-kubeconfig homelab-up
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -91,3 +97,18 @@ verify-netpol: ## Prove egress is locked down (should FAIL to reach the internet
 
 down: ## Delete the cluster
 	k3d cluster delete $(CLUSTER)
+
+homelab-kubeconfig: ## Copy the homelab k3s kubeconfig to the Mac (over Tailscale SSH)
+	@mkdir -p $(dir $(HOMELAB_KUBECONFIG))
+	scp $(HOMELAB_USER)@$(HOMELAB_HOST):.kube/homelab.yaml $(HOMELAB_KUBECONFIG)
+	@chmod 600 $(HOMELAB_KUBECONFIG)
+	@echo "==> Use it with: export KUBECONFIG=$(HOMELAB_KUBECONFIG)"
+
+homelab-up: ## Bootstrap Cilium + ArgoCD + the homelab app-of-apps on the mini PC
+	KUBECONFIG=$(HOMELAB_KUBECONFIG) $(MAKE) cilium argocd
+	@echo "==> Waiting for ArgoCD to be ready..."
+	KUBECONFIG=$(HOMELAB_KUBECONFIG) kubectl -n $(ARGOCD_NS) rollout status deploy/argocd-server --timeout=180s
+	KUBECONFIG=$(HOMELAB_KUBECONFIG) kubectl apply -f bootstrap/argocd/root-app-homelab.yaml
+	@echo ""
+	@echo "Homelab is syncing. Prefix the usual targets with the kubeconfig, e.g.:"
+	@echo "  KUBECONFIG=$(HOMELAB_KUBECONFIG) make argocd-pass argocd-ui"

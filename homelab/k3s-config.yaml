@@ -1,0 +1,28 @@
+# k3s server config for the homelab mini PC (single node).
+# Installed to /etc/rancher/k3s/config.yaml by homelab/bootstrap-host.sh.
+# Mirrors cluster/k3d-config.yaml so the same GitOps tree runs unchanged.
+
+# Cilium is the CNI (`make homelab-up` installs it): no flannel, no k3s
+# network-policy controller. The node stays NotReady until Cilium is up.
+flannel-backend: none
+disable-network-policy: true
+
+# No ServiceLB: nothing gets a LoadBalancer IP on the home LAN by default
+# (the lab runs an intentionally vulnerable app). Reach things with
+# `kubectl port-forward` from the Mac, over Tailscale.
+disable:
+  - servicelb
+
+# kubectl from the Mac talks to https://homelab:6443 over Tailscale (MagicDNS).
+tls-san:
+  - homelab
+
+node-label:
+  - lab=secure-k8s-lab
+
+# Keep headroom for the host (Tailscale, sshd, journald) on a 32 GB / 12-thread
+# box and evict pods before the kernel OOM killer has to step in.
+kubelet-arg:
+  - system-reserved=cpu=500m,memory=1Gi
+  - kube-reserved=cpu=500m,memory=1Gi
+  - eviction-hard=memory.available<500Mi,nodefs.available<10%
