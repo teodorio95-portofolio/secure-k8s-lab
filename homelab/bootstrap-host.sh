@@ -29,9 +29,13 @@ EOF
 sysctl --quiet --system
 
 echo "==> Automatic security updates"
-dpkg-reconfigure -f noninteractive unattended-upgrades
+cat >/etc/apt/apt.conf.d/20auto-upgrades <<'EOF'
+APT::Periodic::Update-Package-Lists "1";
+APT::Periodic::Unattended-Upgrade "1";
+EOF
 
 echo "==> Docker (only to build the local AI images on this amd64 box)"
+apt-get update -q
 apt-get install -y --no-install-recommends docker.io
 
 echo "==> Tailscale"
@@ -42,9 +46,14 @@ fi
 tailscale up --ssh --hostname "$TS_HOSTNAME"
 
 echo "==> k3s $K3S_VERSION"
-install -D -m 0600 "$HERE/k3s-config.yaml" /etc/rancher/k3s/config.yaml
+cfg=/etc/rancher/k3s/config.yaml
+old_cfg_sum="$(sha256sum "$cfg" 2>/dev/null || true)"
+install -D -m 0600 "$HERE/k3s-config.yaml" "$cfg"
 if ! command -v k3s >/dev/null || [[ "$(k3s --version | head -1)" != *"$K3S_VERSION"* ]]; then
   curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION="$K3S_VERSION" sh -s - server
+elif [[ "$(sha256sum "$cfg")" != "$old_cfg_sum" ]]; then
+  echo "    config changed -> restarting k3s"
+  systemctl restart k3s
 fi
 
 echo "==> kubeconfig for the Mac (~$TARGET_USER/.kube/homelab.yaml)"

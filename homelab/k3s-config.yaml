@@ -7,11 +7,13 @@
 flannel-backend: none
 disable-network-policy: true
 
-# No ServiceLB: nothing gets a LoadBalancer IP on the home LAN by default
-# (the lab runs an intentionally vulnerable app). Reach things with
-# `kubectl port-forward` from the Mac, over Tailscale.
+# No ServiceLB and no Traefik: nothing is published on the home LAN, not even
+# through a NodePort (the lab runs an intentionally vulnerable app, and Traefik's
+# LoadBalancer Service would still open NodePorts on every node IP). Reach things
+# with `kubectl port-forward` from the Mac, over Tailscale.
 disable:
   - servicelb
+  - traefik
 
 # kubectl from the Mac talks to https://homelab:6443 over Tailscale (MagicDNS).
 tls-san:
@@ -25,4 +27,5 @@ node-label:
 kubelet-arg:
   - system-reserved=cpu=500m,memory=1Gi
   - kube-reserved=cpu=500m,memory=1Gi
-  - eviction-hard=memory.available<500Mi,nodefs.available<10%
+  # Setting eviction-hard replaces ALL kubelet defaults, so list them all.
+  - eviction-hard=memory.available<500Mi,nodefs.available<10%,nodefs.inodesFree<5%,imagefs.available<15%,imagefs.inodesFree<5%

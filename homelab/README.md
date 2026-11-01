@@ -14,9 +14,10 @@ the Mac over **Tailscale**.
 | Access | localhost | `kubectl` / `ssh` over the tailnet only |
 
 Same CNI (Cilium, flannel and the k3s netpol controller off), same Kyverno
-guardrails, same default-deny namespaces. **ServiceLB is disabled**, so nothing
-(including the intentionally vulnerable Juice Shop) gets an address on the home
-LAN; everything is reached with `kubectl port-forward` through Tailscale.
+guardrails, same default-deny namespaces. **ServiceLB and Traefik are
+disabled**, so nothing (including the intentionally vulnerable Juice Shop) is
+published on the home LAN, not even through a NodePort; everything is reached
+with `kubectl port-forward` through Tailscale (`make juice-ui`, not :8081).
 
 ## 1. Installer USB (on the Mac)
 
@@ -45,7 +46,7 @@ LAN; everything is reached with `kubectl port-forward` through Tailscale.
 
 ## 3. Unattended Debian install
 
-Boot the stick (`F7`) → **Advanced options → Automated install**. When asked
+Boot the stick (`F7`, its **UEFI** entry) → **Advanced options → Automated install**. When asked
 for the preseed location, enter:
 
 ```text
