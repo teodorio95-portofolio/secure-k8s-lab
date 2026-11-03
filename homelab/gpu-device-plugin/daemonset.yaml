@@ -1,0 +1,70 @@
+# Advertises the Radeon 760M render node as `squat.ai/dri`, so pods get
+# /dev/dri through a resource request instead of a hostPath mount (which PSA
+# baseline/restricted forbid). Lives in kube-system: the plugin itself needs
+# /dev and the kubelet device-plugin socket from the host.
+# Based on squat/generic-device-plugin manifests/generic-device-plugin.yaml @ 0.2.0.
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: generic-device-plugin
+  namespace: kube-system
+  labels:
+    app.kubernetes.io/name: generic-device-plugin
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: generic-device-plugin
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: generic-device-plugin
+    spec:
+      priorityClassName: system-node-critical
+      automountServiceAccountToken: false
+      tolerations:
+        - operator: Exists
+          effect: NoExecute
+        - operator: Exists
+          effect: NoSchedule
+      containers:
+        - name: generic-device-plugin
+          image: squat/generic-device-plugin:0.2.0
+          args:
+            - --domain
+            - squat.ai
+            # count > 1: Jellyfin (VAAPI) and later Ollama/llama.cpp (Vulkan)
+            # can share the one iGPU.
+            - --device
+            - |
+              name: dri
+              groups:
+                - count: 4
+                  paths:
+                    - path: /dev/dri/renderD128
+                    - path: /dev/dri/card*
+          resources:
+            requests:
+              cpu: 50m
+              memory: 10Mi
+            limits:
+              cpu: 50m
+              memory: 20Mi
+          ports:
+            - containerPort: 8080
+              name: http
+          securityContext:
+            privileged: true
+          volumeMounts:
+            - name: device-plugin
+              mountPath: /var/lib/kubelet/device-plugins
+            - name: dev
+              mountPath: /dev
+      volumes:
+        - name: device-plugin
+          hostPath:
+            path: /var/lib/kubelet/device-plugins
+        - name: dev
+          hostPath:
+            path: /dev
+  updateStrategy:
+    type: RollingUpdate

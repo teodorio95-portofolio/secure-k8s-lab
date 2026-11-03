@@ -1,0 +1,34 @@
+# App-of-apps for the homelab mini PC (bare-metal k3s instead of k3d).
+# Same tree as root-app.yaml, with two differences:
+#   1. it reads this repo from GitHub on the `homelab` branch (switch
+#      targetRevision to HEAD once the branch is merged), and
+#   2. apps/argocd-apps/secure-ai-gateway.yaml is swapped for its homelab
+#      variant in apps/homelab/ (bigger local model, sized for 32 GB).
+# Applied by `make homelab-up`.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: root
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  sources:
+    - repoURL: https://github.com/teodorio95-portofolio/secure-k8s-lab.git
+      targetRevision: homelab
+      path: apps/argocd-apps
+      directory:
+        exclude: secure-ai-gateway.yaml
+    - repoURL: https://github.com/teodorio95-portofolio/secure-k8s-lab.git
+      targetRevision: homelab
+      path: apps/homelab
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

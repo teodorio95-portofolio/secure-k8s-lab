@@ -1,0 +1,34 @@
+# Homelab variant of secure-ai-gateway.yaml (used by secure-k8s-lab's
+# bootstrap/argocd/root-app-homelab.yaml). Same cross-repo app-of-apps, but
+# from the secure-ai-gateway `homelab` branch: gitops/ minus the two
+# Applications that gitops-homelab/ overrides (local model + gateway config).
+# Copied into secure-k8s-lab/apps/homelab/ by `make wire-lab-homelab`.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: secure-ai-gateway
+  namespace: argocd
+  annotations:
+    # After Kyverno (-2) and its policies (-1), so the AI workloads are
+    # admitted against the guardrails.
+    argocd.argoproj.io/sync-wave: "2"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  sources:
+    - repoURL: https://github.com/teodorio95-portofolio/secure-ai-gateway.git
+      targetRevision: homelab
+      path: gitops
+      directory:
+        exclude: "{ai-models.yaml,litellm.yaml}"
+    - repoURL: https://github.com/teodorio95-portofolio/secure-ai-gateway.git
+      targetRevision: homelab
+      path: gitops-homelab
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
