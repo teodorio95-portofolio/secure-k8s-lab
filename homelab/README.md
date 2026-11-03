@@ -41,7 +41,7 @@ with `kubectl port-forward` through Tailscale (`make juice-ui`, not :8081).
 | Power mode | Quiet (35 W) | quieter fan, ~same performance in reviews |
 | Restore on AC power loss | Power On | comes back after a power cut |
 | Wake-on-LAN | Enabled | can be woken remotely |
-| UMA frame buffer | 2–4 GB | iGPU takes the rest dynamically (GTT) |
+| UMA frame buffer | 8 GB | VRAM for Qwen 3.5 9B on the iGPU (Vulkan, ~6 GB weights + KV cache); the host keeps 24 GB |
 | Secure Boot | leave on | Debian's shim is signed |
 
 ## 3. Unattended Debian install
@@ -86,7 +86,18 @@ and `make homelab-images`. See its README.
 - **Kubernetes version** is pinned to the lab's (`v1.30.4+k3s1`) so every chart
   and schema pin keeps matching; bump `K3S_VERSION` in `bootstrap-host.sh`
   together with `cluster/k3d-config.yaml`.
-- **iGPU for models**: the host has Vulkan; giving it to the Ollama pod needs a
-  device plugin (PSA `restricted` forbids a `hostPath` to `/dev/dri`). Next
-  step, once the hardware is here to test on.
+- **iGPU for models**: `apps/homelab/gpu-device-plugin.yaml` runs
+  generic-device-plugin 0.2.0 (`homelab/gpu-device-plugin/`), which advertises
+  the render node as `squat.ai/dri` (shareable by 4 pods). Ollama in
+  `ai-models` requests it and runs Qwen 3.5 9B through Vulkan (Mesa RADV), with
+  PSA `restricted` intact: no `hostPath`, no privileges. `bootstrap-host.sh`
+  makes the render node 0666 so non-root pods can open it. Check after sync:
+
+  ```bash
+  kubectl get node homelab -o jsonpath='{.status.allocatable.squat\.ai/dri}'   # 4
+  kubectl -n ai-models logs deploy/ollama | grep -iE 'vulkan|offload|inference compute'
+  ```
+
+  If the logs show `library=cpu`, the model runs on the CPU (still works,
+  slower): check the BIOS UMA size and `vulkaninfo --summary` on the host.
 - **UPS**: add `nut-client` and point it at the UPS over USB once it's bought.

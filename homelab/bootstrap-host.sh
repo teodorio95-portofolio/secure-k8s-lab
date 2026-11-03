@@ -63,6 +63,19 @@ sed "s#https://127.0.0.1:6443#https://$TS_HOSTNAME:6443#" /etc/rancher/k3s/k3s.y
 chown "$TARGET_USER:$TARGET_USER" "$TARGET_HOME/.kube/homelab.yaml"
 chmod 0600 "$TARGET_HOME/.kube/homelab.yaml"
 
+echo "==> iGPU render node usable by non-root pods"
+# Pods only see /dev/dri when the device plugin hands it to them (device
+# cgroup), but the node itself is root:render 0660 and the render gid is
+# picked at install time. 0666 on the render node (not the card/KMS node)
+# lets non-root containers (Ollama runs as 65532) use it without baking the
+# host's render gid into every chart. Render nodes cannot modeset.
+cat >/etc/udev/rules.d/70-homelab-render-node.rules <<'EOF'
+SUBSYSTEM=="drm", KERNEL=="renderD*", MODE="0666"
+EOF
+udevadm control --reload
+udevadm trigger --subsystem-match=drm --action=change
+ls -l /dev/dri/ 2>/dev/null || echo "    /dev/dri missing (check firmware-amd-graphics / reboot)"
+
 echo "==> iGPU check (Vulkan)"
 vulkaninfo --summary 2>/dev/null | grep -E 'deviceName|driverName' || \
   echo "    vulkaninfo found no GPU yet (check firmware-amd-graphics / reboot)"
