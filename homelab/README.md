@@ -41,7 +41,7 @@ with `kubectl port-forward` through Tailscale (`make juice-ui`, not :8081).
 | Power mode | Quiet (35 W) | quieter fan, ~same performance in reviews |
 | Restore on AC power loss | Power On | comes back after a power cut |
 | Wake-on-LAN | Enabled | can be woken remotely |
-| UMA frame buffer | 8 GB | VRAM for Qwen 3.5 9B on the iGPU (Vulkan, ~6 GB weights + KV cache); the host keeps 24 GB |
+| UMA frame buffer | 1 GB (default 6 GB) | maximises host RAM (~30 GB); set 8 GB instead to hold Qwen 3.5 9B fully in VRAM (Vulkan, ~6 GB weights + KV cache, host keeps 24 GB) |
 | Secure Boot | leave on | Debian's shim is signed |
 
 ## 3. Unattended Debian install
@@ -55,8 +55,21 @@ https://raw.githubusercontent.com/teodorio95-portofolio/secure-k8s-lab/homelab/h
 
 [preseed.cfg](preseed.cfg) wipes the internal NVMe (factory Windows included),
 installs SSH + standard tools only, no swap, the iGPU firmware and Vulkan
-drivers. It only asks for the `teodorio` password. Remove the stick when it
+drivers. It only asks for the `teodorio95` password. Remove the stick when it
 reboots.
+
+**Installed by hand instead?** (guided install, "SSH server" + "standard system
+utilities" only, root password left empty so the user gets sudo.) Then match
+what the preseed would have done before step 4:
+
+```bash
+sudo hostnamectl set-hostname homelab   # charts pin PVs to this node name
+sudo swapoff -a && sudo sed -i -E 's|^([^#].*[[:space:]]swap[[:space:]].*)$|# \1|' /etc/fstab
+sudo apt-get install -y git rsync amd64-microcode firmware-amd-graphics firmware-realtek \
+  mesa-vulkan-drivers vulkan-tools lm-sensors unattended-upgrades
+```
+
+If a desktop got installed, `sudo systemctl set-default multi-user.target`.
 
 ## 4. Host bootstrap (still at the console)
 
@@ -71,7 +84,7 @@ the monitor and keyboard can go; everything else is remote.
 ## 5. Cluster bootstrap (from the Mac)
 
 ```bash
-ssh teodorio@homelab            # Tailscale SSH, no keys to manage
+ssh teodorio95@homelab          # Tailscale SSH, no keys to manage
 make homelab-kubeconfig         # -> ~/.kube/homelab.yaml (server: https://homelab:6443)
 make homelab-up                 # Cilium + ArgoCD + root-app-homelab
 export KUBECONFIG=~/.kube/homelab.yaml

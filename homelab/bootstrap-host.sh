@@ -16,7 +16,7 @@ set -euo pipefail
 K3S_VERSION="${K3S_VERSION:-v1.30.4+k3s1}"
 TS_HOSTNAME="${TS_HOSTNAME:-homelab}"
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-TARGET_USER="${SUDO_USER:-teodorio}"
+TARGET_USER="${SUDO_USER:-teodorio95}"
 TARGET_HOME="$(getent passwd "$TARGET_USER" | cut -d: -f6)"
 
 [[ $EUID -eq 0 ]] || { echo "Run with sudo." >&2; exit 1; }

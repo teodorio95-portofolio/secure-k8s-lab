@@ -10,7 +10,7 @@ K3S_RESOLV    := $(HOME)/.config/secure-k8s-lab/k3s-resolv.conf
 # Homelab mini PC (bare-metal k3s, see homelab/README.md), reached over
 # Tailscale. Its kubeconfig lives outside the repo, next to the default one.
 HOMELAB_HOST       ?= homelab
-HOMELAB_USER       ?= teodorio
+HOMELAB_USER       ?= teodorio95
 HOMELAB_KUBECONFIG ?= $(HOME)/.kube/homelab.yaml
 
 .PHONY: help up down cilium argocd argocd-pass argocd-ui juice-ui root-app verify-netpol cilium-status hubble-ui falco-events \
