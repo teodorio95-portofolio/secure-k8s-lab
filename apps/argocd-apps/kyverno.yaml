@@ -41,14 +41,16 @@ spec:
       - RespectIgnoreDifferences=true
   # The API server / Kyverno add fields to these CRDs that the chart doesn't
   # declare (an empty metadata.labels map and per-version selectableFields).
-  # `argocd app diff kyverno --core` confirms there is NO real drift with the
-  # rules below. NOTE: the in-cluster controller still cosmetically reports the
-  # CRDs OutOfSync under ServerSideApply (a known ArgoCD + large-CRD limitation);
-  # the app stays Healthy and policies enforce. ServerSideApply is required —
-  # these CRDs exceed the client-side last-applied annotation size limit.
+  # The chart also renders `annotations: {}` on the 11 *.policies.kyverno.io
+  # CRDs; the API server drops the empty map, so without the third rule those
+  # CRDs (and the app) stay OutOfSync forever. The select() ignores only an
+  # empty map: real annotation changes are still diffed.
+  # ServerSideApply is required: these CRDs exceed the client-side
+  # last-applied annotation size limit.
   ignoreDifferences:
     - group: apiextensions.k8s.io
       kind: CustomResourceDefinition
       jqPathExpressions:
         - .metadata.labels
         - .spec.versions[].selectableFields
+        - .metadata.annotations | select(. == {})
