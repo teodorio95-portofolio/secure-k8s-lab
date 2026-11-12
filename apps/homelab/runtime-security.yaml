@@ -1,0 +1,29 @@
+# Homelab variant of apps/argocd-apps/runtime-security.yaml: Falco only.
+# The repo's other app, cilium-l7-policies, only targets the juice-shop
+# namespace, which the homelab does not run (see root-app-homelab.yaml).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: runtime-security
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://gitlab.com/teodorio95/runtime-security.git
+    targetRevision: HEAD
+    path: gitops
+    directory:
+      include: falco.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

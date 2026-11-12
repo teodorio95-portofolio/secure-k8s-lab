@@ -1,0 +1,27 @@
+# The Radeon 760M as a schedulable resource (squat.ai/dri) on the homelab node.
+# Cluster infrastructure, so it lives with the cluster: Ollama in ai-models
+# (secure-ai-gateway, Vulkan) and Jellyfin in media (homelab-apps, VAAPI)
+# request it instead of mounting /dev/dri via hostPath.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: gpu-device-plugin
+  namespace: argocd
+  annotations:
+    # Before the AI workloads (2), so Ollama's GPU request can be satisfied.
+    argocd.argoproj.io/sync-wave: "0"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/teodorio95-portofolio/secure-k8s-lab.git
+    targetRevision: homelab
+    path: homelab/gpu-device-plugin
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kube-system
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

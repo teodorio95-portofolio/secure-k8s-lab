@@ -64,6 +64,12 @@ make falco-events  # tail runtime-detection alerts (project #5)
 make down          # tear everything down
 ```
 
+### Running it on a real box
+
+The same tree also runs 24/7 on a headless mini PC (Debian 13 + k3s, managed
+over Tailscale): `make homelab-up`. Install and bootstrap runbook:
+[homelab/README.md](homelab/README.md).
+
 ### Accessing the apps
 
 - **Juice Shop** is exposed through the cluster's **Traefik ingress** (the k3d
@@ -99,14 +105,21 @@ secure-k8s-lab/
 ├── Makefile                     # lifecycle: up / down / ui / password
 ├── cluster/
 │   └── k3d-config.yaml          # declarative cluster definition
+├── homelab/                     # same lab on a bare-metal mini PC (Debian 13 + k3s)
+│   ├── README.md                # install + bootstrap runbook
+│   ├── preseed.cfg              # unattended Debian install
+│   ├── k3s-config.yaml          # k3s flags (Cilium-ready, no ServiceLB)
+│   └── bootstrap-host.sh        # Tailscale + k3s + kubeconfig for the Mac
 ├── bootstrap/
 │   └── argocd/
-│       └── root-app.yaml        # app-of-apps entry point
+│       ├── root-app.yaml        # app-of-apps entry point
+│       └── root-app-homelab.yaml# homelab entry point (adds apps/homelab/)
 ├── apps/
-│   └── argocd-apps/
-│       ├── juice-shop.yaml      # ArgoCD Application -> renders chart/
-│       ├── kyverno.yaml         # ArgoCD Application -> upstream Kyverno chart
-│       └── kyverno-policies.yaml# ArgoCD Application -> policies/kyverno
+│   ├── argocd-apps/
+│   │   ├── juice-shop.yaml      # ArgoCD Application -> renders chart/
+│   │   ├── kyverno.yaml         # ArgoCD Application -> upstream Kyverno chart
+│   │   └── kyverno-policies.yaml# ArgoCD Application -> policies/kyverno
+│   └── homelab/                 # homelab-only Application variants
 ├── policies/
 │   └── kyverno/                 # guardrails: validate / mutate / generate
 │       ├── 01-disallow-latest-tag.yaml

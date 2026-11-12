@@ -1,0 +1,6 @@
+# Homelab overrides on top of cilium/values.yaml (applied by `make homelab-up`).
+# Keep Hubble and the relay (`hubble observe`, flow metrics); drop the web UI,
+# which nobody opens on the mini PC.
+hubble:
+  ui:
+    enabled: false
