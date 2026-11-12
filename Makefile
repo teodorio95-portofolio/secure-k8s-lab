@@ -41,7 +41,7 @@ cilium: ## Bootstrap Cilium as the CNI (must precede ArgoCD — CNI chicken-and-
 	helm repo add cilium https://helm.cilium.io >/dev/null
 	helm repo update >/dev/null
 	helm upgrade --install cilium cilium/cilium --version $(CILIUM_VER) \
-		--namespace kube-system -f cilium/values.yaml
+		--namespace kube-system -f cilium/values.yaml $(CILIUM_EXTRA_VALUES)
 	@echo "==> Waiting for Cilium (nodes become Ready once the CNI is up)..."
 	kubectl -n kube-system rollout status ds/cilium --timeout=240s
 
@@ -105,7 +105,7 @@ homelab-kubeconfig: ## Copy the homelab k3s kubeconfig to the Mac (over Tailscal
 	@echo "==> Use it with: export KUBECONFIG=$(HOMELAB_KUBECONFIG)"
 
 homelab-up: ## Bootstrap Cilium + ArgoCD + the homelab app-of-apps on the mini PC
-	KUBECONFIG=$(HOMELAB_KUBECONFIG) $(MAKE) cilium argocd
+	KUBECONFIG=$(HOMELAB_KUBECONFIG) $(MAKE) cilium argocd CILIUM_EXTRA_VALUES="-f homelab/cilium-values.yaml"
 	@echo "==> Waiting for ArgoCD to be ready..."
 	KUBECONFIG=$(HOMELAB_KUBECONFIG) kubectl -n $(ARGOCD_NS) rollout status deploy/argocd-server --timeout=180s
 	KUBECONFIG=$(HOMELAB_KUBECONFIG) kubectl apply -f bootstrap/argocd/root-app-homelab.yaml
