@@ -1,9 +1,12 @@
 # App-of-apps for the homelab mini PC (bare-metal k3s instead of k3d).
-# Same tree as root-app.yaml, with two differences:
+# Same tree as root-app.yaml, with three differences:
 #   1. it reads this repo from GitHub on the `homelab` branch (switch
-#      targetRevision to HEAD once the branch is merged), and
-#   2. apps/argocd-apps/secure-ai-gateway.yaml is swapped for its homelab
-#      variant in apps/homelab/ (bigger local model, sized for 32 GB).
+#      targetRevision to HEAD once the branch is merged),
+#   2. apps/argocd-apps/secure-ai-gateway.yaml and runtime-security.yaml are
+#      swapped for their homelab variants in apps/homelab/ (bigger local model
+#      sized for 32 GB; Falco without the juice-shop L7 policies), and
+#   3. juice-shop.yaml is left out: no intentionally vulnerable target on the
+#      home network.
 # Applied by `make homelab-up`.
 apiVersion: argoproj.io/v1alpha1
 kind: Application
@@ -19,7 +22,7 @@ spec:
       targetRevision: homelab
       path: apps/argocd-apps
       directory:
-        exclude: secure-ai-gateway.yaml
+        exclude: '{secure-ai-gateway.yaml,runtime-security.yaml,juice-shop.yaml}'
     - repoURL: https://github.com/teodorio95-portofolio/secure-k8s-lab.git
       targetRevision: homelab
       path: apps/homelab

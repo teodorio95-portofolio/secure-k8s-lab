@@ -12,12 +12,15 @@ the Mac over **Tailscale**.
 | Root app | [root-app.yaml](../bootstrap/argocd/root-app.yaml) | [root-app-homelab.yaml](../bootstrap/argocd/root-app-homelab.yaml) |
 | secure-ai-gateway | `gitops/` | `gitops/` + `gitops-homelab/` overrides (bigger model) |
 | Access | localhost | `kubectl` / `ssh` over the tailnet only |
+| Juice Shop | deployed | not deployed (no vulnerable target on the home network) |
+| runtime-security | Falco + Cilium L7 policies | Falco only (the L7 policies target juice-shop) |
+| Hubble UI | on (`make hubble-ui`) | off ([cilium-values.yaml](cilium-values.yaml)); relay and metrics stay |
 
 Same CNI (Cilium, flannel and the k3s netpol controller off), same Kyverno
 guardrails, same default-deny namespaces. **ServiceLB and Traefik are
-disabled**, so nothing (including the intentionally vulnerable Juice Shop) is
-published on the home LAN, not even through a NodePort; everything is reached
-with `kubectl port-forward` through Tailscale (`make juice-ui`, not :8081).
+disabled**, so nothing is published on the home LAN by this repo, not even
+through a NodePort; everything is reached with `kubectl port-forward` through
+Tailscale.
 
 ## 1. Installer USB (on the Mac)
 
